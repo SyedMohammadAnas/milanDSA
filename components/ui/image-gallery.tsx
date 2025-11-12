@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 export default function ImageGallery({
@@ -45,10 +46,12 @@ export default function ImageGallery({
               key={idx}
               className="relative group flex-grow transition-all w-56 rounded-lg overflow-hidden h-full duration-500 hover:w-full"
             >
-              <img
-                className="h-full w-full object-cover object-center"
+              <Image
+                className="object-cover object-center"
                 src={src}
                 alt={`image-${idx}`}
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             </div>
           ))}

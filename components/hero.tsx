@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef } from "react"
+import Image from "next/image"
 import { ImageTrail } from "@/components/ui/image-trail"
 
 export function Hero() {
@@ -25,10 +26,12 @@ export function Hero() {
               key={index}
               className="flex relative overflow-hidden w-70 h-70 rounded-lg"
             >
-              <img
+              <Image
                 src={url}
                 alt={`Trail image ${index + 1}`}
-                className="object-cover absolute inset-0 hover:scale-110 transition-transform"
+                fill
+                className="object-cover hover:scale-110 transition-transform"
+                sizes="(max-width: 768px) 100vw, 800px"
               />
             </div>
           ))}

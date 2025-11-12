@@ -2,7 +2,8 @@
 
 import SphereImageGrid, { ImageData } from "@/components/ui/img-sphere";
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, X } from 'lucide-react';
+import Image from "next/image";
+import { ChevronRight, X } from 'lucide-react';
 
 // ==========================================
 // IMAGE DATA CONFIGURATION
@@ -225,7 +226,6 @@ export function TeamSphere() {
             {['Convenor 1', 'Convenor 2'].map((convenorName, idx) => {
               const convenorId = `${itemId}-${idx}`;
               const convenorImage = getRandomImage(convenorId);
-              const isHovered = hoveredConvenor === convenorId;
 
               const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -290,10 +290,12 @@ export function TeamSphere() {
           }}
         >
           <div className="relative aspect-square">
-            <img
+            <Image
               src={selectedConvenor.src}
               alt={selectedConvenor.alt}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 400px"
             />
             <button
               onClick={() => setSelectedConvenor(null)}
@@ -384,11 +386,13 @@ export function TeamSphere() {
             opacity: hoveredConvenor ? 1 : 0
           }}
         >
-          <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-24 h-24 border-2 border-gray-200">
-            <img
+          <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-24 h-24 border-2 border-gray-200 relative">
+            <Image
               src={getRandomImage(hoveredConvenor).src}
               alt={getRandomImage(hoveredConvenor).alt}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="96px"
             />
           </div>
         </div>

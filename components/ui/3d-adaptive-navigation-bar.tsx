@@ -697,9 +697,13 @@ export const PillBase: React.FC = () => {
 
                   {/* Animated underline */}
                   <motion.div
-                    className="absolute bottom-0 left-0 h-[2px] bg-[#1a1a1a]"
-                    initial={{ width: 0 }}
-                    animate={{ width: (hoveredItem === item.id || isActive) ? '100%' : 0 }}
+                    className="absolute bottom-0 h-[2px] bg-[#1a1a1a]"
+                    initial={{ width: 0, left: '50%', x: '-50%' }}
+                    animate={{
+                      width: (hoveredItem === item.id || isActive) ? '70%' : 0,
+                      left: '50%',
+                      x: '-50%'
+                    }}
                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                     style={{ opacity: isActive ? 1 : 0.6 }}
                   />

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 
 import { motion, useMotionValue, animate } from 'framer-motion';
 
@@ -58,12 +59,14 @@ export function FramerCarousel({ items, currentIndex = 0, onIndexChange }: Frame
         <div className='relative overflow-hidden rounded-lg' ref={containerRef}>
           <motion.div className='flex' style={{ x }}>
             {items.map((item) => (
-              <div key={item.id} className='shrink-0 w-full aspect-video'>
-                <img
+              <div key={item.id} className='shrink-0 w-full aspect-video relative'>
+                <Image
                   src={item.url}
                   alt={item.title}
-                  className='w-full h-full object-contain rounded-lg select-none pointer-events-none bg-neutral-100 dark:bg-neutral-900'
+                  fill
+                  className='object-contain rounded-lg select-none pointer-events-none bg-neutral-100 dark:bg-neutral-900'
                   draggable={false}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               </div>
             ))}

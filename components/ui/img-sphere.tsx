@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { X } from 'lucide-react';
 
 /**
@@ -136,7 +137,6 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
   momentumDecay = 0.95,
   maxRotationSpeed = 5,
   baseImageScale = 0.12,
-  hoverScale = 1.2,
   perspective = 1000,
   autoRotate = false,
   autoRotateSpeed = 0.3,
@@ -157,12 +157,12 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
 
   // Use controlled prop if provided, otherwise use internal state
   const selectedImage = controlledSelectedImage !== undefined ? controlledSelectedImage : internalSelectedImage;
-  const setSelectedImage = (image: ImageData | null) => {
+  const setSelectedImage = useCallback((image: ImageData | null) => {
     if (controlledSelectedImage === undefined) {
       setInternalSelectedImage(image);
     }
     onImageSelect?.(image);
-  };
+  }, [controlledSelectedImage, onImageSelect]);
   const [imagePositions, setImagePositions] = useState<SphericalPosition[]>([]);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -546,17 +546,19 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
         }}
       >
         <div className="relative w-full h-full rounded-full overflow-hidden shadow-lg border-2 border-white/20">
-          <img
+          <Image
             src={image.src}
             alt={image.alt}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
             draggable={false}
             loading={index < 3 ? 'eager' : 'lazy'}
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         </div>
       </div>
     );
-  }, [worldPositions, baseImageSize, containerSize, hoveredIndex]);
+  }, [worldPositions, baseImageSize, containerSize, hoveredIndex, setSelectedImage, onImageSelect]);
 
   const renderSpotlightModal = () => {
     if (!selectedImage) return null;
@@ -572,10 +574,12 @@ const SphereImageGrid: React.FC<SphereImageGridProps> = ({
           className="bg-white rounded-xl max-w-md w-full overflow-hidden shadow-2xl border-2 border-gray-200"
         >
           <div className="relative aspect-square">
-            <img
+            <Image
               src={selectedImage.src}
               alt={selectedImage.alt}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 400px"
             />
             <button
               onClick={() => {

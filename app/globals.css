@@ -119,4 +119,11 @@
     @apply bg-background text-foreground font-sans;
     font-family: var(--font-grotesk), sans-serif;
   }
+
+  /* Hide default cursor when custom cursor is active */
+  @media (hover: hover) and (pointer: fine) {
+    * {
+      cursor: none !important;
+    }
+  }
 }

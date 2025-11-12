@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { PillBase } from "@/components/ui/3d-adaptive-navigation-bar";
+import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
+import { KineticCursor } from "@/components/ui/kinetic-cursor";
 
 const grotesk = localFont({
   src: [
@@ -38,10 +40,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={grotesk.variable}>
       <body className="antialiased font-sans">
-        <header className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
-          <PillBase />
-        </header>
-        {children}
+        <SmoothScrollProvider>
+          <KineticCursor />
+          <header className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
+            <PillBase />
+          </header>
+          {children}
+        </SmoothScrollProvider>
       </body>
     </html>
   );

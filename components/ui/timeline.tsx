@@ -99,10 +99,10 @@ export const Timeline = ({ data, onActiveIndexChange, heading, description }: Ti
                     }`} />
                   </div>
                 </div>
-                <h3 className="md:hidden text-2xl font-bold text-neutral-500 dark:text-neutral-500 pt-1">
+                <h3 className="md:hidden text-2xl font-bold text-black dark:text-black pt-1">
                   {item.title}
                 </h3>
-                <h3 className="hidden md:block text-xl md:pl-20 md:text-5xl font-bold text-neutral-500 dark:text-neutral-500 md:pt-0">
+                <h3 className="hidden md:block text-xl md:pl-20 md:text-5xl font-bold text-black dark:text-black md:pt-0">
                   {item.title}
                 </h3>
               </div>
