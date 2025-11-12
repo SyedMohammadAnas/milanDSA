@@ -112,12 +112,64 @@ export const PillBase: React.FC = () => {
 
     // Collapse the pill after selection
     setHovering(false)
+    setExpanded(false)
 
     // Reset transition state after animation completes
     setTimeout(() => {
       setIsTransitioning(false)
     }, 400)
   }
+
+  // Handle click on mobile to toggle expansion
+  const handleClick = (e: React.MouseEvent) => {
+    if (isMobile) {
+      // If clicking on the nav container (not a button), toggle expansion
+      const target = e.target as HTMLElement
+      const isButton = target.closest('button') !== null
+
+      if (!isButton && !expanded) {
+        // Expand on click if not already expanded
+        setHovering(true)
+      }
+    }
+  }
+
+  // Close navigation on scroll (mobile only)
+  React.useEffect(() => {
+    if (!isMobile || !expanded) return
+
+    const handleScroll = () => {
+      setHovering(false)
+      setExpanded(false)
+      pillWidth.set(140)
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [isMobile, expanded, pillWidth])
+
+  // Close navigation when clicking outside (mobile only)
+  React.useEffect(() => {
+    if (!isMobile || !expanded) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setHovering(false)
+        setExpanded(false)
+        pillWidth.set(140)
+      }
+    }
+
+    // Use a small delay to avoid closing immediately when opening
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('click', handleClickOutside)
+    }, 100)
+
+    return () => {
+      clearTimeout(timeoutId)
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [isMobile, expanded, pillWidth])
 
   const activeItem = navItems.find(item => item.id === activeSection)
 
@@ -128,6 +180,8 @@ export const PillBase: React.FC = () => {
       onMouseEnter={handleMouseEnter}
 
       onMouseLeave={handleMouseLeave}
+
+      onClick={handleClick}
 
       className="relative rounded-full"
 

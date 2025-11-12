@@ -85,7 +85,7 @@ export const Timeline = ({ data, onActiveIndexChange, heading, description }: Ti
         {data.map((item, index) => (
           <div
             key={index}
-            className="relative pt-32 md:pt-80 min-h-[80vh] md:min-h-[120vh]"
+            className="relative pt- md:pt-80 min-h-[20vh] md:min-h-[120vh]"
           >
             <div className="sticky top-75 z-40 flex flex-col md:flex-row gap-4 md:gap-10 items-start">
               {/* Timeline dot and title section */}
