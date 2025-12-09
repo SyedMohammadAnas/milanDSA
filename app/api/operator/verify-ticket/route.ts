@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { Database } from '@/lib/database.types';
+
+type TicketConfirmation = Database['public']['Tables']['ticket_confirmations']['Row'];
 
 export async function GET(request: NextRequest) {
   try {
@@ -17,10 +20,10 @@ export async function GET(request: NextRequest) {
     // Search in ticket_confirmations with case-insensitive partial matching
     const { data: tickets, error: ticketError } = await supabase
       .from('ticket_confirmations')
-      .select('*')
+      .select('id, name, registration_number, email, booking_reference, event_name, ticket_price')
       .ilike('booking_reference', `%${ticketRef}%`)
       .eq('payment_status', 'completed')
-      .limit(10);
+      .limit(10) as { data: TicketConfirmation[] | null, error: any };
 
     if (ticketError) {
       console.error('[VERIFY TICKET API] Error searching tickets:', ticketError);
@@ -42,7 +45,7 @@ export async function GET(request: NextRequest) {
     const { data: rsvpData, error: rsvpError } = await supabase
       .from('rsvp_confirmations')
       .select('ticket_reference, rsvp_status')
-      .in('ticket_reference', bookingRefs);
+      .in('ticket_reference', bookingRefs) as { data: { ticket_reference: string, rsvp_status: string }[] | null, error: any };
 
     // Create a map of ticket_reference -> rsvp_status
     const rsvpStatusMap: Record<string, string> = {};
@@ -95,7 +98,7 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('booking_reference', ticketReference)
       .eq('payment_status', 'completed')
-      .single();
+      .single() as { data: TicketConfirmation | null, error: any };
 
     if (ticketError || !ticket) {
       console.log('[VERIFY TICKET API] Ticket not found');
@@ -132,7 +135,7 @@ export async function POST(request: NextRequest) {
         ticket_reference: ticket.booking_reference,
         event_name: ticket.event_name,
         rsvp_status: 'ready'
-      });
+      } as any);
 
     if (insertError) {
       console.error('[VERIFY TICKET API] Error creating RSVP:', insertError);

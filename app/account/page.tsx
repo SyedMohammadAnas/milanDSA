@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/lib/database.types'
 import TicketQRModal from '@/components/ticket-qr-modal'
+import QRScannerModal from '@/components/qr-scanner-modal'
+import { generateRSVPQRData } from '@/lib/rsvp-qr'
 
 type StudentDatabaseRow = Database['public']['Tables']['student_database']['Row']
 type TicketConfirmationRow = Database['public']['Tables']['ticket_confirmations']['Row']
@@ -20,6 +22,7 @@ export default function AccountPage() {
   const [updating, setUpdating] = useState(false)
   const [qrModalOpen, setQrModalOpen] = useState(false)
   const [selectedTicket, setSelectedTicket] = useState<TicketConfirmationRow | null>(null)
+  const [rsvpScannerOpen, setRsvpScannerOpen] = useState(false)
   const router = useRouter()
 
   // Function to refresh student data from database
@@ -162,10 +165,26 @@ export default function AccountPage() {
 
   // Handle RSVP - Open camera to scan QR code
   const handleRSVP = () => {
-    console.log('📱 [ACCOUNT] RSVP button clicked - Opening QR scanner')
-    // For now, redirect directly to RSVP page
-    // In production, this would open a QR scanner first
-    router.push('/rsvp?source=station_qr')
+    console.log('📱 [ACCOUNT] RSVP button clicked - Opening QR scanner modal')
+    setRsvpScannerOpen(true)
+  }
+
+  // Handle QR scan result
+  const handleRSVPScan = (scannedData: string) => {
+    console.log('📱 [ACCOUNT] QR scanned:', scannedData)
+
+    // Check if the scanned QR is the valid RSVP QR
+    const expectedQR = generateRSVPQRData()
+
+    if (scannedData === expectedQR || scannedData.includes('/rsvp?source=station_qr')) {
+      console.log('✅ [ACCOUNT] Valid RSVP QR scanned, redirecting to RSVP page')
+      setRsvpScannerOpen(false)
+      router.push('/rsvp?source=station_qr&scanned=true')
+    } else {
+      console.log('❌ [ACCOUNT] Invalid QR scanned')
+      alert('Invalid QR code. Please scan the official RSVP QR code displayed at the station.')
+      // Keep scanner open for another try
+    }
   }
 
   // Handle updating student fields
@@ -541,10 +560,10 @@ export default function AccountPage() {
 
                     {/* RSVP Button - Bottom right corner for completed tickets */}
                     {ticket.payment_status === 'completed' && (
-                      <div className="mt-4 flex justify-end">
+                      <div className="-mt-4 flex justify-end">
                         <button
                           onClick={() => handleRSVP()}
-                          className="bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-2 px-6 rounded-full hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-md flex items-center gap-2"
+                          className="bg-blue-600 text-white font-semibold py-2 px-6 rounded-full hover:bg-blue-700 transition-all duration-200 shadow-md flex items-center gap-2"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -580,6 +599,15 @@ export default function AccountPage() {
           phone_number: student.phone_number,
           personal_email: student.personal_email,
         } : undefined}
+      />
+
+      {/* RSVP QR Scanner Modal */}
+      <QRScannerModal
+        isOpen={rsvpScannerOpen}
+        onClose={() => setRsvpScannerOpen(false)}
+        onScan={handleRSVPScan}
+        title="Scan RSVP QR Code"
+        description="Scan the official RSVP QR code displayed at the station"
       />
     </div>
   )
