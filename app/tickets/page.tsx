@@ -68,7 +68,7 @@ export default function Tickets() {
         setShowBookButton(true)
         try {
           await thamanAudioRef.current?.play()
-        } catch (error) {
+        } catch {
           // Handle autoplay restriction - audio will play on user interaction
           console.log('Audio autoplay blocked - will play on user interaction')
         }
@@ -191,7 +191,7 @@ export default function Tickets() {
       document.removeEventListener('keydown', enableAudio)
       document.removeEventListener('touchstart', enableAudio)
     }
-  }, [])
+  }, [router])
 
   return (
     <div className="relative w-full min-h-screen">

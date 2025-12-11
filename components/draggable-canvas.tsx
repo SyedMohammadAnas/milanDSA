@@ -8,19 +8,38 @@ interface DraggableCanvasProps {
   onClickOutside?: () => void;
   isSelectionMode?: boolean;
   targetZoom?: number;
+  onResetZoom?: () => void;
+  resetPan?: boolean;
+  panOffset?: { x: number; y: number };
 }
 
-export default function DraggableCanvas({ children, className = '', onClickOutside, isSelectionMode = false, targetZoom }: DraggableCanvasProps) {
+export default function DraggableCanvas({ children, className = '', onClickOutside, isSelectionMode = false, targetZoom, onResetZoom, resetPan, panOffset }: DraggableCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [pan, setPan] = useState({ x: 0, y: 0 })
   const [scale, setScale] = useState(0.3)
 
+  // Use refs to track previous values to avoid unnecessary updates
+  const prevTargetZoom = useRef(targetZoom)
+  const prevResetPan = useRef(resetPan)
+
   // Update scale when targetZoom changes
   useEffect(() => {
-    if (targetZoom !== undefined) {
+    if (targetZoom !== prevTargetZoom.current && targetZoom !== undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setScale(targetZoom)
+      prevTargetZoom.current = targetZoom
     }
   }, [targetZoom])
+
+  // Reset pan when resetPan changes
+  useEffect(() => {
+    if (resetPan !== prevResetPan.current && resetPan) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPan(panOffset || { x: 0, y: 0 })
+      prevResetPan.current = resetPan
+    }
+  }, [resetPan, panOffset])
+
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
 
@@ -98,7 +117,8 @@ export default function DraggableCanvas({ children, className = '', onClickOutsi
   const resetView = useCallback(() => {
     setPan({ x: 0, y: 0 })
     setScale(1)
-  }, [])
+    onResetZoom?.()
+  }, [onResetZoom])
 
   // Handle canvas click
   const handleCanvasClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
@@ -149,7 +169,7 @@ export default function DraggableCanvas({ children, className = '', onClickOutsi
         {children}
       </div>
 
-      {/* Zoom indicator / Reset button */}
+      {/* Zoom indicator / Reset button - Hidden on mobile */}
       <button
         onMouseEnter={(e) => {
           const target = e.target as HTMLElement;
@@ -160,7 +180,7 @@ export default function DraggableCanvas({ children, className = '', onClickOutsi
           target.textContent = `${Math.round(scale * 100)}%`;
         }}
         onClick={resetView}
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-lg text-xs font-medium text-black hover:bg-white transition-colors"
+        className="hidden md:block absolute bottom-4 left-1/2 -translate-x-1/2 z-30 px-3 py-1.5 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-lg text-xs font-medium text-black hover:bg-white transition-colors"
       >
         {Math.round(scale * 100)}%
       </button>

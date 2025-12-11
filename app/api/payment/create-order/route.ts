@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { PostgrestError } from '@supabase/supabase-js'
 import {
   createOrder,
   generateReceiptId,
@@ -7,6 +8,9 @@ import {
   paymentLogger,
 } from '@/lib/razorpay'
 import { Database } from '@/lib/database.types'
+
+type StudentDatabaseRow = Database['public']['Tables']['student_database']['Row']
+type TicketConfirmationRow = Database['public']['Tables']['ticket_confirmations']['Row']
 
 // Create Supabase admin client for server-side operations
 const getSupabaseAdmin = () => {
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest) {
       .from('student_database')
       .select('*')
       .eq('email', studentEmail)
-      .single()
+      .single() as { data: StudentDatabaseRow | null, error: PostgrestError | null }
 
     if (studentError || !student) {
       paymentLogger.error('Student not found in database', {
@@ -99,7 +103,7 @@ export async function POST(request: NextRequest) {
       .select('id, booking_reference, event_name, created_at')
       .eq('email', studentEmail)
       .eq('payment_status', 'completed')
-      .single()
+      .single() as { data: TicketConfirmationRow | null, error: PostgrestError | null }
 
     if (ticketCheckError && ticketCheckError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
       paymentLogger.error('Error checking existing tickets', {
@@ -143,7 +147,7 @@ export async function POST(request: NextRequest) {
     paymentLogger.success('✓ Student eligible for ticket purchase')
 
     // 6. Generate unique identifiers
-    const receiptId = generateReceiptId(eventName, studentEmail)
+    const receiptId = generateReceiptId(eventName)
     const bookingReference = generateBookingReference(eventName)
 
     paymentLogger.info(`Receipt ID: ${receiptId}`)
@@ -181,9 +185,9 @@ export async function POST(request: NextRequest) {
         razorpay_order_id: order.id,
         payment_status: 'pending',
         booking_reference: bookingReference,
-      })
+      } as TicketConfirmationInsert)
       .select()
-      .single()
+      .single() as { data: TicketConfirmationRow | null, error: PostgrestError | null }
 
     if (bookingError) {
       paymentLogger.error('Failed to create initial booking record', {

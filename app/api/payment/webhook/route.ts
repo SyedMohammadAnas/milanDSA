@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { PostgrestError } from '@supabase/supabase-js'
 import { verifyWebhookSignature, paymentLogger } from '@/lib/razorpay'
 import { Database } from '@/lib/database.types'
+
+type StudentDatabaseRow = Database['public']['Tables']['student_database']['Row']
+type TicketConfirmationRow = Database['public']['Tables']['ticket_confirmations']['Row']
 
 // Create Supabase admin client for server-side operations
 const getSupabaseAdmin = () => {
@@ -187,7 +191,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
     .from('ticket_confirmations')
     .select('*')
     .eq('razorpay_order_id', orderId)
-    .single()
+    .single() as { data: TicketConfirmationRow | null, error: PostgrestError | null }
 
   if (fetchError) {
     paymentLogger.warning('No existing booking found for order', { orderId })
@@ -206,7 +210,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
       .from('student_database')
       .select('*')
       .eq('email', studentEmail)
-      .single()
+      .single() as { data: StudentDatabaseRow | null, error: PostgrestError | null }
 
     if (studentError || !student) {
       paymentLogger.error('Student not found for webhook booking', { email: studentEmail })
@@ -231,7 +235,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
       razorpay_payment_id: paymentId,
       payment_status: 'completed',
       booking_reference: bookingReference,
-    })
+    } as TicketConfirmationInsert)
 
     if (insertError) {
       paymentLogger.error('Failed to create booking from webhook', {
@@ -245,7 +249,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
   }
 
   // Booking exists - check if already completed
-  if (existingBooking.payment_status === 'completed') {
+  if (existingBooking && existingBooking.payment_status === 'completed') {
     paymentLogger.info('Booking already completed, skipping update', {
       bookingReference: existingBooking.booking_reference,
     })
@@ -268,7 +272,7 @@ async function handlePaymentCaptured(payload: RazorpayWebhookPayload) {
       orderId,
     })
   } else {
-    paymentLogger.success(`Updated booking from webhook: ${existingBooking.booking_reference}`)
+    paymentLogger.success(`Updated booking from webhook: ${existingBooking?.booking_reference}`)
   }
 }
 

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Upload, X, Hash, Search, TrendingUp, Image as ImageIcon } from 'lucide-react'
+import { Upload, X, Hash, Search, TrendingUp, RotateCcw } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import DraggableCanvas from '@/components/draggable-canvas'
 import {
@@ -24,7 +24,6 @@ interface TrendingHashtag {
 export default function ExplorePage() {
   const router = useRouter()
   const [student, setStudent] = useState<{ full_name: string } | null>(null)
-  const [posts, setPosts] = useState<Post[]>([])
   const [placedImages, setPlacedImages] = useState<PlacedImage[]>([])
   const [imageDimensions, setImageDimensions] = useState<Map<string, ImageDimensions>>(new Map())
   const [totalPosts, setTotalPosts] = useState(0)
@@ -40,11 +39,15 @@ export default function ExplorePage() {
   const [hashtagInput, setHashtagInput] = useState('')
   const [uploading, setUploading] = useState(false)
 
+  // Mobile trending toggle state
+  const [mobileTrendingOpen, setMobileTrendingOpen] = useState(false)
+
   // Image selection states
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [isImageSelected, setIsImageSelected] = useState(false)
   const [isExitingSelection, setIsExitingSelection] = useState(false)
   const [selectedDisplayPositions, setSelectedDisplayPositions] = useState<PlacedImage[]>([])
+  const [shouldResetPan, setShouldResetPan] = useState(false)
 
   // Check authentication
   useEffect(() => {
@@ -85,7 +88,6 @@ export default function ExplorePage() {
 
       if (postsData.success) {
         const allPosts = postsData.posts
-        setPosts(allPosts)
         setTotalPosts(postsData.total_count)
 
         // Preload image dimensions and calculate placement
@@ -200,7 +202,6 @@ export default function ExplorePage() {
 
       if (data.success) {
         const filteredPosts = data.posts
-        setPosts(filteredPosts)
 
         if (filteredPosts.length > 0) {
           const dimensions = await preloadImageDimensions(filteredPosts)
@@ -225,6 +226,15 @@ export default function ExplorePage() {
     setSearchQuery(hashtag)
   }
 
+  // Handle reset zoom
+  const handleResetZoom = () => {
+    if (isImageSelected) {
+      handleExitSelection()
+    }
+    // The DraggableCanvas will handle the actual zoom reset
+  }
+
+
   // Helper function for overlap detection
   const rectanglesOverlap = (
     x1: number, y1: number, w1: number, h1: number,
@@ -248,6 +258,10 @@ export default function ExplorePage() {
 
     setIsImageSelected(true)
     setSelectedPost(post)
+    setShouldResetPan(true) // Reset pan to center the view
+
+    // Reset the flag after animation
+    setTimeout(() => setShouldResetPan(false), 100)
 
     // Check if the clicked image is already the center
     const centerImage = placedImages[0]
@@ -300,8 +314,8 @@ export default function ExplorePage() {
 
       while (!placed && attempts < maxAttempts) {
         // Try original position first, then random positions
-        let testX = attempts === 0 ? img.x : (Math.random() - 0.5) * 1200
-        let testY = attempts === 0 ? img.y : (Math.random() - 0.5) * 900
+        const testX = attempts === 0 ? img.x : (Math.random() - 0.5) * 1200
+        const testY = attempts === 0 ? img.y : (Math.random() - 0.5) * 900
 
         // Check overlap with all placed images
         let hasOverlap = false
@@ -375,11 +389,11 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-[#e9e9e9] text-black overflow-hidden">
-      {/* Top Left - Trending Hashtags */}
+      {/* Desktop Top Left - Trending Hashtags */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="fixed top-6 left-6 z-10 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-2xl p-4 group hover:max-w-xs transition-all duration-700"
+        className="hidden md:block fixed top-6 left-6 z-10 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-2xl p-4 group hover:max-w-xs transition-all duration-700"
       >
         <div className="flex items-center gap-2">
           <TrendingUp className="w-5 h-5 mb-2 text-[#171717]" />
@@ -402,11 +416,61 @@ export default function ExplorePage() {
         </div>
       </motion.div>
 
-      {/* Top Right - Total Posts - reduced height */}
+      {/* Mobile Top Left - Trending Icon */}
+      <motion.button
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        onClick={() => setMobileTrendingOpen(!mobileTrendingOpen)}
+        className="md:hidden fixed top-6 left-6 z-10 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-2xl p-3"
+      >
+        <TrendingUp className="w-6 h-6 text-[#171717]" />
+      </motion.button>
+
+      {/* Mobile Trending Hashtags Dropdown */}
+      <AnimatePresence>
+        {mobileTrendingOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, x: -20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.9, x: -20 }}
+            className="md:hidden fixed top-20 left-6 z-10 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-2xl p-4 min-w-48"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-[#171717]">Trending</h3>
+              <button
+                onClick={() => setMobileTrendingOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {trendingHashtags.slice(0, 5).map((item, index) => (
+                <motion.button
+                  key={item.hashtag}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  onClick={() => {
+                    handleTrendingClick(item.hashtag)
+                    setMobileTrendingOpen(false)
+                  }}
+                  className="w-full flex items-center justify-between text-left hover:bg-gray-100 rounded-lg p-2 transition-colors"
+                >
+                  <span className="text-sm text-gray-700">#{item.hashtag}</span>
+                  <span className="text-xs text-gray-500">{item.count}</span>
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Top Right - Total Posts */}
       <motion.div
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
-        className="fixed top-6 right-6 z-10 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-2xl px-5 py-2"
+        className="hidden md:block fixed top-10 md:top-6 right-6 z-10 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-2xl px-5 py-2"
       >
         <div className="flex items-center gap-2 h-6">
           <span className="text-sm text-gray-700"> Total Posts</span>
@@ -414,11 +478,35 @@ export default function ExplorePage() {
         </div>
       </motion.div>
 
-      {/* Bottom Left - Search Bar */}
+      {/* Mobile Top Right - Posts */}
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        className="md:hidden fixed top-6 right-6 z-10 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-2xl px-4 py-2"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-700">posts</span>
+          <span className="text-lg font-bold text-[#171717]">{totalPosts}</span>
+        </div>
+      </motion.div>
+
+      {/* Mobile Reset Zoom Button */}
+      <motion.button
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={handleResetZoom}
+        className="md:hidden fixed bottom-20 left-14 z-10 p-2 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-full hover:bg-white transition-colors"
+      >
+        <RotateCcw className="w-5 h-5 text-[#171717]" />
+      </motion.button>
+
+      {/* Desktop Bottom Left - Search Bar */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="fixed bottom-6 left-6 z-10 w-96" // increased width from w-80 to w-96
+        className="hidden md:block fixed bottom-6 left-6 z-10 w-96"
       >
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" /> {/* increased icon left padding and size */}
@@ -439,6 +527,31 @@ export default function ExplorePage() {
         </div>
       </motion.div>
 
+      {/* Mobile Bottom Center - Search Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-10 w-80"
+      >
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            placeholder="Search hashtags..."
+            className="w-full pl-12 pr-20 py-3 bg-white/80 backdrop-blur-lg border border-gray-300 rounded-2xl text-base text-black placeholder-gray-500 focus:outline-none focus:border-[#171717] transition-colors"
+          />
+          <button
+            onClick={handleSearch}
+            className="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-2 bg-[#171717] hover:bg-gray-800 text-white rounded-xl text-xs font-medium transition-colors"
+          >
+            Search
+          </button>
+        </div>
+      </motion.div>
+
       {/* Bottom Right - Upload Button */}
       <motion.button
         initial={{ opacity: 0, scale: 0.8 }}
@@ -446,7 +559,7 @@ export default function ExplorePage() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setUploadModalOpen(true)}
-        className="fixed bottom-6 right-6 z-10 px-7 py-3 bg-[#171717] hover:bg-gray-800 text-white rounded-full flex items-center gap-2 transition-all"
+        className="fixed bottom-20 md:bottom-6 md:right-6 right-14 z-10 md:px-7 px-4 md:py-3 py-2 bg-[#171717] hover:bg-gray-800 text-white rounded-full flex items-center gap-2 transition-all"
       >
         <Upload className="w-4 h-4" />
         <span className="text-sm font-medium">Upload</span>
@@ -458,6 +571,9 @@ export default function ExplorePage() {
         onClickOutside={handleExitSelection}
         isSelectionMode={isImageSelected}
         targetZoom={isImageSelected ? 2.0 : 0.3}
+        onResetZoom={handleResetZoom}
+        resetPan={shouldResetPan}
+        panOffset={isImageSelected ? { x: 0, y: -40 } : { x: 0, y: 0 }}
       >
         {loading ? (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -476,14 +592,14 @@ export default function ExplorePage() {
             {/* Center marker (optional, for debugging) */}
             <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-red-500 rounded-full -translate-x-1/2 -translate-y-1/2 opacity-0" />
 
-            {/* Hashtags beside selected image */}
+            {/* Desktop Hashtags beside selected image */}
             <AnimatePresence>
               {isImageSelected && selectedPost && selectedDisplayPositions.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 20 }}
-                  className="absolute z-30"
+                  className="hidden md:block absolute z-30"
                   style={{
                     left: `calc(50% + ${selectedDisplayPositions[0].width / 2 + 20}px)`,
                     top: `calc(50% + ${-selectedDisplayPositions[0].height / 2}px)`,
@@ -497,6 +613,36 @@ export default function ExplorePage() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
                         className="bg-[#171717] text-white px-3 py-1 rounded-full text-sm font-medium"
+                      >
+                        #{hashtag}
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Mobile Hashtags below selected image */}
+            <AnimatePresence>
+              {isImageSelected && selectedPost && selectedDisplayPositions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  className="md:hidden absolute z-30"
+                  style={{
+                    left: `calc(50% - ${selectedDisplayPositions[0].width / 2}px)`,
+                    top: `calc(50% + ${selectedDisplayPositions[0].height / 2 + 15}px)`,
+                  }}
+                >
+                  <div className="flex flex-row flex-wrap gap-1.5 justify-start max-w-xs">
+                    {selectedPost.hashtags.map((hashtag, index) => (
+                      <motion.div
+                        key={hashtag}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="bg-[#171717] text-white px-1.5 py-0.5 rounded-full text-[10px] font-medium"
                       >
                         #{hashtag}
                       </motion.div>

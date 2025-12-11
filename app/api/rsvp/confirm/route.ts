@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { Database } from '@/lib/database.types';
+import type { PostgrestError } from '@supabase/supabase-js';
+
+type TicketConfirmationRow = Database['public']['Tables']['ticket_confirmations']['Row'];
+type RsvpConfirmationRow = Database['public']['Tables']['rsvp_confirmations']['Row'];
+type RsvpConfirmationInsert = Database['public']['Tables']['rsvp_confirmations']['Insert'];
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +33,7 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('email', email)
       .eq('payment_status', 'completed')
-      .single();
+      .single() as { data: TicketConfirmationRow | null, error: PostgrestError | null };
 
     if (ticketError || !ticket) {
       console.log('[RSVP CONFIRM API] No completed ticket found for student');
@@ -44,7 +50,7 @@ export async function POST(request: NextRequest) {
       .from('rsvp_confirmations')
       .select('*')
       .eq('ticket_reference', ticket.booking_reference)
-      .single();
+      .single() as { data: RsvpConfirmationRow | null, error: PostgrestError | null };
 
     if (existingRsvp) {
       console.log('[RSVP CONFIRM API] RSVP already exists for this ticket');
@@ -65,7 +71,7 @@ export async function POST(request: NextRequest) {
         ticket_reference: ticket.booking_reference,
         event_name: ticket.event_name,
         rsvp_status: 'ready'
-      });
+      } as RsvpConfirmationInsert);
 
     if (insertError) {
       console.error('[RSVP CONFIRM API] Error creating RSVP:', insertError);

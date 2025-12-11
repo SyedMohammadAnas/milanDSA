@@ -2,7 +2,7 @@
 
 import { TeamSphere } from "@/components/team-sphere"
 import { TeamIntroAnimation } from "@/components/team-intro-animation"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 
 export default function Team() {
   const [showIntro, setShowIntro] = useState(true);

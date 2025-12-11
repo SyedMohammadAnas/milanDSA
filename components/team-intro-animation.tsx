@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
+import Image from 'next/image';
 
 interface TeamIntroAnimationProps {
   onComplete: () => void;
@@ -24,16 +25,13 @@ export function TeamIntroAnimation({ onComplete }: TeamIntroAnimationProps) {
   const rajivRef = useRef<HTMLDivElement>(null);
 
   const [animationComplete, setAnimationComplete] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const [isMounted] = useState(true); // Client-side only component
 
   useEffect(() => {
-    setIsMounted(true);
-    // Check if mobile
+    // Check if mobile on resize
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    checkMobile();
     window.addEventListener('resize', checkMobile);
 
     return () => window.removeEventListener('resize', checkMobile);
@@ -352,9 +350,11 @@ export function TeamIntroAnimation({ onComplete }: TeamIntroAnimationProps) {
         <div className="relative flex items-center justify-center">
           {/* Prince - Left */}
           <div ref={princeRef} className="absolute flex flex-col items-center">
-            <img
+            <Image
               src="/Directors_Images/PrinceKalyanasundaram.png"
               alt="Prince Kalyanasundaram"
+              width={256}
+              height={256}
               className="w-32 h-32 sm:w-40 sm:h-40 md:w-56 md:h-56 lg:w-64 lg:h-64 rounded-full object-cover shadow-2xl border-2 md:border-4 border-white"
             />
             <div className="name-text mt-3 text-center px-2">
@@ -365,9 +365,11 @@ export function TeamIntroAnimation({ onComplete }: TeamIntroAnimationProps) {
 
           {/* Nisha - Center (on top) */}
           <div ref={nishaRef} className="flex flex-col items-center relative z-10">
-            <img
+            <Image
               src="/Directors_Images/NishaAshokan.png"
               alt="Nisha Ashokan"
+              width={288}
+              height={288}
               className="w-40 h-40 sm:w-48 sm:h-48 md:w-64 md:h-64 lg:w-72 lg:h-72 rounded-full object-cover shadow-2xl border-2 md:border-4 border-white"
             />
             <div className="name-text mt-3 text-center px-2">
@@ -378,9 +380,11 @@ export function TeamIntroAnimation({ onComplete }: TeamIntroAnimationProps) {
 
           {/* Pradeep - Right */}
           <div ref={pradeepRef} className="absolute flex flex-col items-center">
-            <img
+            <Image
               src="/Directors_Images/SPradeep.png"
               alt="S Pradeep"
+              width={256}
+              height={256}
               className="w-32 h-32 sm:w-40 sm:h-40 md:w-56 md:h-56 lg:w-64 lg:h-64 rounded-full object-cover shadow-2xl border-2 md:border-4 border-white"
             />
             <div className="name-text mt-3 text-center px-2">
@@ -403,9 +407,11 @@ export function TeamIntroAnimation({ onComplete }: TeamIntroAnimationProps) {
         {/* Managers Images */}
         <div className="flex gap-8 sm:gap-12 md:gap-16">
           <div ref={dhandayuthapaniRef} className="flex flex-col items-center">
-            <img
+            <Image
               src="/Managers_Images/Dhandayuthapani.png"
               alt="Dhandayuthapani"
+              width={224}
+              height={224}
               className="w-32 h-32 sm:w-36 sm:h-36 md:w-48 md:h-48 lg:w-56 lg:h-56 rounded-full object-cover shadow-2xl border-2 md:border-4 border-white"
             />
             <div className="name-text mt-3 text-center px-2">
@@ -414,9 +420,11 @@ export function TeamIntroAnimation({ onComplete }: TeamIntroAnimationProps) {
             </div>
           </div>
           <div ref={rajivRef} className="flex flex-col items-center">
-            <img
+            <Image
               src="/Managers_Images/RajivD.png"
               alt="Rajiv D"
+              width={224}
+              height={224}
               className="w-32 h-32 sm:w-36 sm:h-36 md:w-48 md:h-48 lg:w-56 lg:h-56 rounded-full object-cover shadow-2xl border-2 md:border-4 border-white"
             />
             <div className="name-text mt-3 text-center px-2">

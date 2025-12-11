@@ -1,28 +1,37 @@
 'use client'
 
 import Image from "next/image"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Script from "next/script"
+import type { RazorpayError, RazorpayPaymentResponse } from "@/lib/razorpay"
 
-// Razorpay types
-interface RazorpayResponse {
-  razorpay_payment_id: string
-  razorpay_order_id: string
-  razorpay_signature: string
-}
-
-interface RazorpayError {
-  code: string
-  description: string
-  source: string
-  step: string
-  reason: string
-  metadata: {
-    order_id: string
-    payment_id?: string
-  }
+const eventData = {
+  name: "Thriple",
+  title: "Thriple Live Performance",
+  imageUrl: "/ProShowTickets/Thriple/ThripleMain.jpg",
+  categories: ["Music", "Concert", "Pro Show", "Fusion"],
+  description: "Witness the mesmerizing fusion of traditional and contemporary music by Thriple at MILAN 26. Their unique blend of classical Indian music with modern beats creates an extraordinary musical journey.",
+  fullDescription: "Witness the mesmerizing fusion of traditional and contemporary music by Thriple at MILAN 26. Their unique blend of classical Indian music with modern beats creates an extraordinary musical journey. Thriple's innovative approach combines ancient ragas with electronic music, creating a sound that's both timeless and contemporary. Their performances are known for their energy, precision, and ability to transport audiences to a different dimension through music. This concert promises to be a celebration of musical innovation and cultural heritage.",
+  tips: [
+    "Arrive early to experience the full atmosphere",
+    "The performance involves both seated and standing sections",
+    "Electronic music may include strobe lights - sensitive individuals take note",
+    "Recording devices are allowed for personal use only",
+    "Respect the artists and fellow attendees during the performance"
+  ],
+  date: "March 16, 2025",
+  time: "7:30 PM",
+  duration: "2.5 hours",
+  ageGroup: "16+",
+  languages: "Instrumental with Hindi/English announcements",
+  genres: "Fusion, Electronic, Classical Fusion",
+  location: "Amphitheater, Milan Campus",
+  price: 1299,
+  bookingStatus: "Early bird pricing available! Book now to secure your spot.",
+  priceRange: "₹1,299",
+  availability: "Available"
 }
 
 export default function ThriplePlaceOrder() {
@@ -30,46 +39,15 @@ export default function ThriplePlaceOrder() {
   const [showFullTips, setShowFullTips] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoggedIn] = useState(() => {
+    // Initialize login status from localStorage
+    const studentEmail = localStorage.getItem('studentEmail')
+    const loggedIn = !!studentEmail
+    console.log('📝 [AUTH] Login status checked:', loggedIn)
+    return loggedIn
+  })
   const [razorpayLoaded, setRazorpayLoaded] = useState(false)
   const router = useRouter()
-
-  // Event data extracted from database
-  const eventData = {
-    name: "Thriple Live Performance",
-    title: "Thriple Live Performance - MILAN 26'",
-    description: "Get ready for an unforgettable night with Thriple at MILAN 26! Experience the energy and passion of this incredible performance that will leave you wanting more.",
-    fullDescription: "Get ready for an unforgettable night with Thriple at MILAN 26! Experience the energy and passion of this incredible performance that will leave you wanting more. Thriple brings their unique style and electrifying stage presence to create a memorable experience for all music lovers. This is a performance you don't want to miss - join us for an evening of exceptional music and entertainment that will be the talk of MILAN 26!",
-    date: "Sun 16 Feb 2026",
-    time: "7:00 PM",
-    duration: "2.5 Hours",
-    ageGroup: "All age groups",
-    languages: "Telugu, Tamil, Hindi, English",
-    genres: "Live Performance, Pop, Contemporary",
-    location: "Main Stage: MILAN 26",
-    venue: "Main Stage",
-    price: 1200, // Price in rupees (number for calculations)
-    priceDisplay: "₹1200",
-    priceRange: "₹1200 onwards",
-    availability: "Filling Fast",
-    bookingStatus: "Bookings are filling fast for this event",
-    imageUrl: "/ProShowTickets/Thriple/ThripleFullTransparent.png",
-    categories: ["Concerts", "Music Festivals", "Pro Shows"],
-    tips: [
-      "VIP, Gold, and Silver sections available - choose your preferred seating!",
-      "Doors open 30 minutes before the show. Arrive early to avoid queues.",
-      "Photography and videography allowed, but please be respectful of other attendees.",
-      "Food and beverages will be available at the venue.",
-      "Parking facilities are available near the venue."
-    ]
-  }
-
-  // Check login status on mount
-  useEffect(() => {
-    const studentEmail = localStorage.getItem('studentEmail')
-    setIsLoggedIn(!!studentEmail)
-    console.log('📝 [AUTH] Login status checked:', !!studentEmail)
-  }, [])
 
   // Payment handler
   const handleBookNow = async () => {
@@ -85,7 +63,7 @@ export default function ThriplePlaceOrder() {
     }
 
     // Check if Razorpay is loaded
-    if (!razorpayLoaded || typeof window === 'undefined' || !(window as any).Razorpay) {
+    if (!razorpayLoaded || typeof window === 'undefined' || !window.Razorpay) {
       console.log('⏳ [PAYMENT] Razorpay not loaded yet, waiting...')
       setPaymentError('Payment gateway is loading. Please wait and try again.')
       return
@@ -149,7 +127,7 @@ export default function ThriplePlaceOrder() {
         theme: {
           color: '#EAB308',
         },
-        handler: async function (response: RazorpayResponse) {
+        handler: async function (response: RazorpayPaymentResponse) {
           console.log('✅ [PAYMENT] Payment successful, verifying...')
           console.log('📝 [PAYMENT] Payment ID:', response.razorpay_payment_id)
           console.log('📝 [PAYMENT] Order ID:', response.razorpay_order_id)
@@ -201,11 +179,11 @@ export default function ThriplePlaceOrder() {
 
       // Step 4: Open Razorpay checkout
       console.log('🔓 [PAYMENT] Opening Razorpay checkout...')
-      const razorpay = new (window as any).Razorpay(options)
+      const razorpay = new window.Razorpay(options)
 
-      razorpay.on('payment.failed', function (response: { error: RazorpayError }) {
-        console.error('❌ [PAYMENT] Payment failed:', response.error)
-        setPaymentError(`Payment failed: ${response.error.description}`)
+      razorpay.on('payment.failed', function (response: RazorpayError) {
+        console.error('❌ [PAYMENT] Payment failed:', response)
+        setPaymentError(`Payment failed: ${response.description}`)
         setIsLoading(false)
       })
 
@@ -413,7 +391,7 @@ export default function ThriplePlaceOrder() {
               <button
                 onClick={handleBookNow}
                 disabled={isLoading}
-                className={`w-full font-bold py-4 px-6 rounded-lg text-lg transition-all shadow-lg ${
+                className={`w-full font-bold py-4 px-6 rounded-full text-lg transition-all shadow-lg ${
                   isLoading
                     ? 'bg-gray-400 cursor-not-allowed'
                     : 'bg-red-600 hover:bg-red-700 text-white hover:shadow-xl'

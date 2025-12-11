@@ -310,7 +310,7 @@ export default function CustomImageTrail({ items = [] }: CustomImageTrailProps):
   useEffect(() => {
     if (!containerRef.current) return;
     new CustomImageTrailVariant(containerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [items]);
 
   return (

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import QRCode from 'react-qr-code'
 import { X, Download, Copy, Check } from 'lucide-react'
@@ -33,45 +33,44 @@ export default function TicketQRModal({
   studentData
 }: TicketQRModalProps) {
   const [copied, setCopied] = useState(false)
-  const [qrData, setQrData] = useState<QRCodeData | null>(null)
 
-  useEffect(() => {
-    if (ticket && studentData) {
-      // Create QR code data from ticket and student information
-      const qrCodeData: QRCodeData = {
-        student: {
-          name: studentData.full_name || 'Unknown',
-          email: studentData.email,
-          registration_number: studentData.registration_number || 'Unknown',
-          batch: studentData.batch,
-          program: studentData.program,
-          department: studentData.department,
-          semester: studentData.semester,
-          phone_number: studentData.phone_number,
-          personal_email: studentData.personal_email,
-        },
-        ticket: {
-          id: ticket.id,
-          event_name: ticket.event_name,
-          event_date: ticket.event_date,
-          booking_reference: ticket.booking_reference,
-          ticket_price: ticket.ticket_price,
-          payment_status: ticket.payment_status,
-          created_at: ticket.created_at,
-        },
-        transaction: {
-          razorpay_order_id: ticket.razorpay_order_id,
-          razorpay_payment_id: ticket.razorpay_payment_id,
-          razorpay_signature: ticket.razorpay_signature,
-        },
-        metadata: {
-          event: 'MILAN 26\'',
-          generated_at: new Date().toISOString(),
-          version: '1.0',
-        },
-      }
-      setQrData(qrCodeData)
+  const qrData = useMemo(() => {
+    if (!ticket || !studentData) return null
+
+    // Create QR code data from ticket and student information
+    const qrCodeData: QRCodeData = {
+      student: {
+        name: studentData?.full_name || 'Unknown',
+        email: studentData?.email || 'Unknown',
+        registration_number: studentData?.registration_number || 'Unknown',
+        batch: studentData?.batch,
+        program: studentData?.program,
+        department: studentData?.department,
+        semester: studentData?.semester,
+        phone_number: studentData?.phone_number,
+        personal_email: studentData?.personal_email,
+      },
+      ticket: {
+        id: ticket.id,
+        event_name: ticket.event_name,
+        event_date: ticket.event_date,
+        booking_reference: ticket.booking_reference,
+        ticket_price: ticket.ticket_price,
+        payment_status: ticket.payment_status,
+        created_at: ticket.created_at,
+      },
+      transaction: {
+        razorpay_order_id: ticket.razorpay_order_id,
+        razorpay_payment_id: ticket.razorpay_payment_id,
+        razorpay_signature: ticket.razorpay_signature,
+      },
+      metadata: {
+        event: 'MILAN 26\'',
+        generated_at: new Date().toISOString(),
+        version: '1.0',
+      },
     }
+    return qrCodeData
   }, [ticket, studentData])
 
   const handleCopyBookingRef = async () => {
@@ -133,7 +132,7 @@ export default function TicketQRModal({
                     Ticket QR Code
                   </h2>
                   <p className="text-black/70 mt-1">
-                    MILAN 26' - Event Entry Pass
+                    MILAN 26&apos; - Event Entry Pass
                   </p>
                 </div>
                 <button
@@ -217,17 +216,17 @@ export default function TicketQRModal({
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-black/60">Name:</span>
-                        <span className="font-semibold text-black">{studentData.full_name || 'Unknown'}</span>
+                        <span className="font-semibold text-black">{studentData?.full_name || 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-black/60">Registration:</span>
-                        <span className="font-semibold text-black">{studentData.registration_number || 'Unknown'}</span>
+                        <span className="font-semibold text-black">{studentData?.registration_number || 'Unknown'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-black/60">Email:</span>
-                        <span className="font-semibold text-black text-xs">{studentData.email}</span>
+                        <span className="font-semibold text-black text-xs">{studentData?.email || 'Unknown'}</span>
                       </div>
-                      {studentData.batch && (
+                      {studentData?.batch && (
                         <div className="flex justify-between">
                           <span className="text-black/60">Batch:</span>
                           <span className="font-semibold text-black">{studentData.batch}</span>

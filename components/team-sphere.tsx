@@ -2,6 +2,7 @@
 
 import SphereImageGrid, { ImageData } from "@/components/ui/img-sphere";
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { ChevronRight, ChevronDown, ChevronUp, X, RefreshCw } from 'lucide-react';
 
 // ==========================================
@@ -112,9 +113,7 @@ export function TeamSphere() {
   // Mobile pagination state - EDIT HERE: Change 5 to adjust items per page
   const [corePage, setCorePage] = useState(0);
   const [clubPage, setClubPage] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState({ core: false, club: false });
   const [mobileView, setMobileView] = useState<'club' | 'core' | 'directors' | 'managers'>('directors'); // Toggle between club, core, directors, and managers views
-  const [isViewTransitioning, setIsViewTransitioning] = useState(false);
   const itemsPerPage = 5;
 
   useEffect(() => {
@@ -280,7 +279,6 @@ export function TeamSphere() {
             {['Convenor 1', 'Convenor 2'].map((convenorName, idx) => {
               const convenorId = `${itemId}-${idx}`;
               const convenorImage = getRandomImage(convenorId);
-              const isHovered = hoveredConvenor === convenorId;
 
               const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
                 if (disableHover) return; // Disable hover on mobile
@@ -348,9 +346,11 @@ export function TeamSphere() {
           }}
         >
           <div className="relative aspect-square">
-            <img
+            <Image
               src={selectedConvenor.src}
               alt={selectedConvenor.alt}
+              width={400}
+              height={400}
               className="w-full h-full object-cover"
             />
             <button
@@ -707,7 +707,6 @@ export function TeamSphere() {
           <div className="space-y-2 mb-10">
             {directors.map((director, index) => {
               const directorId = `director-${index}`;
-              const isHovered = hoveredConvenor === directorId;
 
               const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -766,7 +765,6 @@ export function TeamSphere() {
           <div className="space-y-2 ml-25">
             {managers.map((manager, index) => {
               const managerId = `manager-${index}`;
-              const isHovered = hoveredConvenor === managerId;
 
               const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -866,9 +864,11 @@ export function TeamSphere() {
           }}
         >
           <div className="bg-white rounded-xl shadow-2xl overflow-hidden w-24 h-24 border-2 border-gray-200">
-            <img
+            <Image
               src={getRandomImage(hoveredConvenor).src}
               alt={getRandomImage(hoveredConvenor).alt}
+              width={96}
+              height={96}
               className="w-full h-full object-cover"
             />
           </div>

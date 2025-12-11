@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
-import { Database } from '@/lib/database.types'
-
-type StudentDatabaseRow = Database['public']['Tables']['student_database']['Row']
 
 export async function POST(request: NextRequest) {
   try {

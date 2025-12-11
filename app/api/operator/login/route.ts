@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Return operator data (excluding password)
-    const { password: _, ...operatorData } = operator;
+    const { password, ...operatorData } = operator;
 
     return NextResponse.json({
       success: true,

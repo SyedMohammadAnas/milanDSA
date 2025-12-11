@@ -101,7 +101,7 @@ export function generateQRCodeId(ticketId: string): string {
 /**
  * Validate QR code data structure
  */
-export function validateQRCodeData(data: any): data is QRCodeData {
+export function validateQRCodeData(data: unknown): data is QRCodeData {
   return (
     data &&
     typeof data === 'object' &&

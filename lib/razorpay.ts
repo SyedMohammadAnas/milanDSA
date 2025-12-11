@@ -67,7 +67,7 @@ export const generateBookingReference = (eventName: string): string => {
  * Generate a unique receipt ID for Razorpay orders
  * Format: MILAN_{EVENT}_{TIMESTAMP}_{RANDOM}
  */
-export const generateReceiptId = (eventName: string, email: string): string => {
+export const generateReceiptId = (eventName: string): string => {
   const eventCode = eventName.replace(/\s+/g, '_').substring(0, 10).toUpperCase()
   const timestamp = Date.now()
   const randomStr = crypto.randomBytes(3).toString('hex')

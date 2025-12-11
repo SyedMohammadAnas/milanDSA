@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/lib/database.types'
+import type { PostgrestError } from '@supabase/supabase-js'
 import puppeteer from 'puppeteer'
 
 type StudentDatabaseRow = Database['public']['Tables']['student_database']['Row']
@@ -118,9 +119,9 @@ export async function POST(request: NextRequest) {
 
       const { data: newStudent, error: insertError } = await supabase
         .from('student_database')
-        .insert(insertData as any)
+        .insert(insertData)
         .select()
-        .single() as { data: StudentDatabaseRow, error: any }
+        .single() as { data: StudentDatabaseRow, error: PostgrestError | null }
 
       if (insertError) {
         console.error(`[${timestamp}] ❌ DATABASE INSERT ERROR:`, insertError)
@@ -234,7 +235,7 @@ async function scrapeAcademiaData(email: string, password: string) {
       }
 
       console.log(`[${new Date().toISOString()}] 🔄 SWITCHING TO IFRAME CONTEXT`)
-    } catch (iframeError) {
+    } catch {
       console.log(`[${new Date().toISOString()}] ❌ NO IFRAME FOUND, LOOKING FOR DIRECT INPUTS`)
 
       // Fallback: look for inputs on the main page
@@ -264,7 +265,7 @@ async function scrapeAcademiaData(email: string, password: string) {
             foundInput = true
             break
           }
-        } catch (e) {
+        } catch {
           continue
         }
       }
@@ -337,7 +338,7 @@ async function scrapeAcademiaData(email: string, password: string) {
           // Check if element is visible and enabled
           const isVisible = await contextPage.evaluate(el => {
             const htmlEl = el as HTMLElement
-            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !(htmlEl as any).disabled
+            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !htmlEl.disabled
           }, element)
 
           if (!isVisible) {
@@ -382,7 +383,7 @@ async function scrapeAcademiaData(email: string, password: string) {
         if (element) {
           const isVisible = await contextPage.evaluate(el => {
             const htmlEl = el as HTMLElement
-            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !(htmlEl as any).disabled
+            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !htmlEl.disabled
           }, element)
 
           if (!isVisible) {
@@ -435,7 +436,7 @@ async function scrapeAcademiaData(email: string, password: string) {
           // Check if element is visible and enabled
           const isVisible = await contextPage.evaluate(el => {
             const htmlEl = el as HTMLElement
-            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !(htmlEl as any).disabled
+            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !htmlEl.disabled
           }, element)
 
           if (!isVisible) {
@@ -477,12 +478,12 @@ async function scrapeAcademiaData(email: string, password: string) {
       const signInButton = await contextPage.evaluate(() => {
         const buttons = Array.from(document.querySelectorAll('button, input[type="submit"]'))
         return buttons.find(btn => {
-          const htmlBtn = btn as HTMLElement
+          const htmlBtn = btn as HTMLButtonElement
           const text = btn.textContent?.trim()
           const style = window.getComputedStyle(btn)
           const isVisible = htmlBtn.offsetWidth > 0 && htmlBtn.offsetHeight > 0 &&
                            style.display !== 'none' && style.visibility !== 'hidden' &&
-                           !(htmlBtn as any).disabled
+                           !htmlBtn.disabled
           return isVisible && (text === 'Sign In' || text?.includes('Sign In'))
         })
       })
@@ -538,11 +539,11 @@ async function scrapeAcademiaData(email: string, password: string) {
             tagName: btn.tagName,
             type: btn.getAttribute('type'),
             visible: (() => {
-              const htmlBtn = btn as HTMLElement
+              const htmlBtn = btn as HTMLButtonElement
               const style = window.getComputedStyle(btn)
               return htmlBtn.offsetWidth > 0 && htmlBtn.offsetHeight > 0 &&
                      style.display !== 'none' && style.visibility !== 'hidden' &&
-                     !(htmlBtn as any).disabled
+                     !htmlBtn.disabled
             })()
           })).filter(btn => btn.visible)
         )
@@ -606,7 +607,7 @@ async function scrapeAcademiaData(email: string, password: string) {
             return null // Invalid credentials
           }
         }
-      } catch (e) {
+      } catch {
         continue
       }
     }

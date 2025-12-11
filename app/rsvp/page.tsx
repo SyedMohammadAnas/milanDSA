@@ -1,34 +1,40 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function RSVPPage() {
+function RSVPContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [studentEmail, setStudentEmail] = useState('');
+  const [studentEmail] = useState(() => {
+    // Initialize student email from localStorage
+    const email = localStorage.getItem('studentEmail');
+    if (email) {
+      console.log('[RSVP PAGE] Student session found:', email);
+      return email;
+    }
+    return '';
+  });
+
+  // Initialize error state based on source validation
+  const [error, setError] = useState(() => {
+    const source = searchParams.get('source');
+    if (source !== 'station_qr') {
+      console.log('[RSVP PAGE] Invalid RSVP source');
+      return 'Invalid RSVP source';
+    }
+    return '';
+  });
 
   useEffect(() => {
     // Check if student is logged in
-    const studentEmail = localStorage.getItem('studentEmail');
     if (!studentEmail) {
       console.log('[RSVP PAGE] No student session found, redirecting to login');
       router.push('/login');
       return;
     }
-
-    console.log('[RSVP PAGE] Student session found:', studentEmail);
-    setStudentEmail(studentEmail);
-
-    // Validate source
-    const source = searchParams.get('source');
-    if (source !== 'station_qr') {
-      console.log('[RSVP PAGE] Invalid RSVP source');
-      setError('Invalid RSVP source');
-    }
-  }, [router, searchParams]);
+  }, [router, studentEmail]);
 
   const handleYes = async () => {
     console.log('[RSVP PAGE] Student confirmed RSVP');
@@ -138,5 +144,13 @@ export default function RSVPPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RSVPPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RSVPContent />
+    </Suspense>
   );
 }

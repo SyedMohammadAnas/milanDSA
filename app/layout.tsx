@@ -4,7 +4,6 @@ import "./globals.css";
 import { PillBase } from "@/components/ui/3d-adaptive-navigation-bar";
 import { SmoothScrollProvider } from "@/components/providers/smooth-scroll-provider";
 import { KineticCursor } from "@/components/ui/kinetic-cursor";
-import { headers } from 'next/headers';
 
 const grotesk = localFont({
   src: [

@@ -12,21 +12,24 @@ interface Operator {
 
 export default function OperatorDashboard() {
   const router = useRouter();
-  const [operator, setOperator] = useState<Operator | null>(null);
+  const [operator] = useState<Operator | null>(() => {
+    // Initialize operator from localStorage
+    const operatorData = localStorage.getItem('operator');
+    if (operatorData) {
+      const parsedOperator = JSON.parse(operatorData);
+      console.log('[OPERATOR DASHBOARD] Operator session found:', parsedOperator.username);
+      return parsedOperator;
+    }
+    return null;
+  });
 
   useEffect(() => {
     // Check if operator is logged in
-    const operatorData = localStorage.getItem('operator');
-    if (!operatorData) {
+    if (!operator) {
       console.log('[OPERATOR DASHBOARD] No operator session found, redirecting to login');
       router.push('/operator/login');
-      return;
     }
-
-    const parsedOperator = JSON.parse(operatorData);
-    console.log('[OPERATOR DASHBOARD] Operator session found:', parsedOperator.username);
-    setOperator(parsedOperator);
-  }, [router]);
+  }, [operator, router]);
 
   if (!operator) {
     return (
