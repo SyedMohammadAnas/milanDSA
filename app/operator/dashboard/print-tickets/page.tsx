@@ -234,9 +234,9 @@ export default function PrintTicketsPage() {
       {/* RSVP List */}
       <div className="space-y-3 mb-20">
         {loading ? (
-          <div className="text-white text-center py-8">Loading...</div>
+          <div className="text-gray-800 text-center py-8">Loading...</div>
         ) : sortedRsvps.length === 0 ? (
-          <div className="text-white text-center py-8">No RSVP confirmations found</div>
+          <div className="text-gray-800 text-center py-8">No RSVP confirmations found</div>
         ) : (
           sortedRsvps.map((rsvp) => {
             const isSelected = selectedTickets.has(rsvp.ticket_reference);

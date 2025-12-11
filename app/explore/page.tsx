@@ -40,6 +40,12 @@ export default function ExplorePage() {
   const [hashtagInput, setHashtagInput] = useState('')
   const [uploading, setUploading] = useState(false)
 
+  // Image selection states
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null)
+  const [isImageSelected, setIsImageSelected] = useState(false)
+  const [isExitingSelection, setIsExitingSelection] = useState(false)
+  const [selectedDisplayPositions, setSelectedDisplayPositions] = useState<PlacedImage[]>([])
+
   // Check authentication
   useEffect(() => {
     const studentEmail = localStorage.getItem('studentEmail')
@@ -219,6 +225,154 @@ export default function ExplorePage() {
     setSearchQuery(hashtag)
   }
 
+  // Helper function for overlap detection
+  const rectanglesOverlap = (
+    x1: number, y1: number, w1: number, h1: number,
+    x2: number, y2: number, w2: number, h2: number,
+    padding: number = 30
+  ): boolean => {
+    return !(
+      x1 + w1 + padding < x2 ||
+      x2 + w2 + padding < x1 ||
+      y1 + h1 + padding < y2 ||
+      y2 + h2 + padding < y1
+    )
+  }
+
+  // Handle post click for selection
+  const handlePostClick = (post: Post) => {
+    if (isImageSelected && selectedPost?.id === post.id) {
+      // Clicking same image, do nothing
+      return
+    }
+
+    setIsImageSelected(true)
+    setSelectedPost(post)
+
+    // Check if the clicked image is already the center
+    const centerImage = placedImages[0]
+    if (centerImage.post.id === post.id) {
+      // Already the center, just zoom in and show hashtags - no layout change needed
+      setSelectedDisplayPositions(placedImages)
+      return
+    }
+
+    // Different image clicked - create new layout
+    const selectedImageData = placedImages.find(p => p.post.id === post.id)
+    if (!selectedImageData) return
+
+    const newPositions: PlacedImage[] = []
+
+    // 1. Place selected image in center
+    const selectedDims = imageDimensions.get(post.id) || { width: 400, height: 400 }
+    newPositions.push({
+      post,
+      x: -selectedDims.width / 2,
+      y: -selectedDims.height / 2,
+      width: selectedDims.width,
+      height: selectedDims.height,
+      ringIndex: 0,
+      angleOnRing: 0
+    })
+
+    // 2. Move previous center image to where the selected image was
+    const centerDims = imageDimensions.get(centerImage.post.id) || { width: 400, height: 400 }
+    newPositions.push({
+      ...centerImage,
+      x: selectedImageData.x,
+      y: selectedImageData.y,
+      width: centerDims.width * 0.2,
+      height: centerDims.height * 0.2
+    })
+
+    // 3. Add all other images (shrunk to 20% size) avoiding overlaps
+    const otherImages = placedImages.filter(p =>
+      p.post.id !== post.id && p.post.id !== centerImage.post.id
+    )
+
+    for (const img of otherImages) {
+      const shrunkWidth = img.width * 0.2
+      const shrunkHeight = img.height * 0.2
+
+      let placed = false
+      let attempts = 0
+      const maxAttempts = 50
+
+      while (!placed && attempts < maxAttempts) {
+        // Try original position first, then random positions
+        let testX = attempts === 0 ? img.x : (Math.random() - 0.5) * 1200
+        let testY = attempts === 0 ? img.y : (Math.random() - 0.5) * 900
+
+        // Check overlap with all placed images
+        let hasOverlap = false
+        for (const placedImg of newPositions) {
+          if (rectanglesOverlap(
+            testX, testY, shrunkWidth, shrunkHeight,
+            placedImg.x, placedImg.y, placedImg.width, placedImg.height,
+            30
+          )) {
+            hasOverlap = true
+            break
+          }
+        }
+
+        if (!hasOverlap) {
+          newPositions.push({
+            ...img,
+            x: testX,
+            y: testY,
+            width: shrunkWidth,
+            height: shrunkHeight
+          })
+          placed = true
+        }
+        attempts++
+      }
+
+      // If couldn't place after max attempts, place it anyway (far away)
+      if (!placed) {
+        newPositions.push({
+          ...img,
+          x: img.x,
+          y: img.y,
+          width: shrunkWidth,
+          height: shrunkHeight
+        })
+      }
+    }
+
+    setSelectedDisplayPositions(newPositions)
+  }
+
+  // Handle click outside to exit selection
+  const handleExitSelection = () => {
+    // Set exiting state for faster animation
+    setIsExitingSelection(true)
+
+    // Update the main placedImages with the current selected layout
+    if (selectedDisplayPositions.length > 0) {
+      // Restore full sizes for all images
+      const restoredPositions = selectedDisplayPositions.map(placed => {
+        const originalDims = imageDimensions.get(placed.post.id) || { width: 400, height: 400 }
+        return {
+          ...placed,
+          width: originalDims.width,
+          height: originalDims.height
+        }
+      })
+      setPlacedImages(restoredPositions)
+    }
+
+    setIsImageSelected(false)
+    setSelectedPost(null)
+    setSelectedDisplayPositions([])
+
+    // Reset exiting state after animation completes
+    setTimeout(() => {
+      setIsExitingSelection(false)
+    }, 1000) // Slightly longer than the animation duration
+  }
+
   return (
     <div className="min-h-screen bg-[#e9e9e9] text-black overflow-hidden">
       {/* Top Left - Trending Hashtags */}
@@ -299,7 +453,12 @@ export default function ExplorePage() {
       </motion.button>
 
       {/* Draggable Canvas with Circular Image Display */}
-      <DraggableCanvas className="w-full h-screen">
+      <DraggableCanvas
+        className="w-full h-screen"
+        onClickOutside={handleExitSelection}
+        isSelectionMode={isImageSelected}
+        targetZoom={isImageSelected ? 2.0 : 0.3}
+      >
         {loading ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <motion.div
@@ -317,38 +476,104 @@ export default function ExplorePage() {
             {/* Center marker (optional, for debugging) */}
             <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-red-500 rounded-full -translate-x-1/2 -translate-y-1/2 opacity-0" />
 
+            {/* Hashtags beside selected image */}
+            <AnimatePresence>
+              {isImageSelected && selectedPost && selectedDisplayPositions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  className="absolute z-30"
+                  style={{
+                    left: `calc(50% + ${selectedDisplayPositions[0].width / 2 + 20}px)`,
+                    top: `calc(50% + ${-selectedDisplayPositions[0].height / 2}px)`,
+                  }}
+                >
+                  <div className="flex flex-col gap-2">
+                    {selectedPost.hashtags.map((hashtag, index) => (
+                      <motion.div
+                        key={hashtag}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="bg-[#171717] text-white px-3 py-1 rounded-full text-sm font-medium"
+                      >
+                        #{hashtag}
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Placed images */}
-            {placedImages.map((placed, index) => (
-              <motion.div
-                key={placed.post.id}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{
-                  delay: index * 0.1,
-                  duration: 0.6,
-                  ease: 'easeOut'
-                }}
-                style={{
-                  position: 'absolute',
-                  left: `calc(50% + ${placed.x}px)`,
-                  top: `calc(50% + ${placed.y}px)`,
-                  width: `${placed.width}px`,
-                  height: `${placed.height}px`,
-                }}
-                className="cursor-pointer select-none"
-              >
-                <div className="relative w-full h-full overflow-hidden border-2 border-gray-300 shadow-lg hover:shadow-xl transition-shadow">
-                  <Image
-                    src={placed.post.image_url}
-                    alt={`Post by ${placed.post.posted_by}`}
-                    fill
-                    className="object-cover pointer-events-none"
-                    sizes={`${placed.width}px`}
-                    priority={index < 10}
-                  />
-                </div>
-              </motion.div>
-            ))}
+            {(isImageSelected ? selectedDisplayPositions : placedImages).map((placed, index) => {
+              const isSelected = isImageSelected && selectedPost?.id === placed.post.id;
+              const uniqueKey = `${placed.post.id}-${isImageSelected ? 'selected' : 'normal'}-${index}`;
+
+              return (
+                <motion.div
+                  key={uniqueKey}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{
+                    delay: isImageSelected ? 0 : (isExitingSelection ? index * 0.02 : index * 0.1),
+                    duration: isImageSelected ? 0.4 : (isExitingSelection ? 0.3 : 0.6),
+                    ease: 'easeOut'
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: `calc(50% + ${placed.x}px)`,
+                    top: `calc(50% + ${placed.y}px)`,
+                    width: `${placed.width}px`,
+                    height: `${placed.height}px`,
+                    zIndex: 20 // Ensure images are above the overlay
+                  }}
+                  className="cursor-pointer select-none group"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isImageSelected) {
+                      // Not in selection mode, select this image
+                      handlePostClick(placed.post);
+                    } else if (isImageSelected && !isSelected) {
+                      // In selection mode but clicked different image, select the new one
+                      handlePostClick(placed.post);
+                    }
+                    // If clicked on selected image, do nothing (already selected)
+                  }}
+                >
+                  <div className="relative w-full h-full">
+                    {/* Main image container */}
+                    <div
+                      className={`absolute inset-0 overflow-hidden border-2 shadow-lg transition-all duration-300 ${
+                        isSelected
+                          ? 'border-[#ecff13]'
+                          : 'border-gray-300 group-hover:shadow-xl'
+                      }`}
+                    >
+                      <Image
+                        src={placed.post.image_url}
+                        alt={`Post by ${placed.post.posted_by}`}
+                        fill
+                        className="object-cover pointer-events-none"
+                        sizes={`${placed.width}px`}
+                        priority={index < 10}
+                      />
+                    </div>
+
+                    {/* Yellow outline effect on hover */}
+                    {!isSelected && (
+                      <div
+                        className="absolute inset-0 border-4 rounded-lg border-[#ecff13] opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                        style={{
+                          margin: '-6px'
+                        }}
+                      />
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </DraggableCanvas>
