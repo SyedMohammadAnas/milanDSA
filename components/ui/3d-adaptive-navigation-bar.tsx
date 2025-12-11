@@ -53,6 +53,7 @@ export const PillBase: React.FC = () => {
       { label: 'Home', id: 'home', path: '/' },
       { label: 'Team', id: 'team', path: '/team' },
       { label: 'Gallery', id: 'gallery', path: '/gallery' },
+      { label: 'Explore', id: 'explore', path: '/explore' },
       { label: 'Tickets', id: 'tickets', path: '/tickets' },
     ]
 
@@ -654,7 +655,7 @@ export const PillBase: React.FC = () => {
 
         {expanded && (
 
-          <div className="flex items-center justify-center gap-1 md:gap-0 md:justify-evenly w-full">
+          <div className="flex items-center w-full">
 
             {navItems.map((item, index) => {
 
@@ -686,7 +687,7 @@ export const PillBase: React.FC = () => {
 
                   onClick={() => handleSectionClick(item)}
 
-                  className="relative cursor-pointer transition-all duration-200 group"
+                  className="relative cursor-pointer transition-all duration-200 group flex-1"
 
                   style={{
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Json } from '@/lib/database.types';
 
 interface Operator {
   id: string;
@@ -19,7 +20,7 @@ interface Ticket {
   booking_reference: string;
   ticket_price: number;
   rsvp_status?: string;
-  qr_code_data?: any;
+  qr_code_data?: Json;
 }
 
 export default function VerifyQRPage() {

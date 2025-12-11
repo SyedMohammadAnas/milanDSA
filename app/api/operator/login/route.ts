@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Return operator data (excluding password)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...operatorData } = operator;
 
     return NextResponse.json({

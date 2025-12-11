@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     console.log('[PRINT API] Updating RSVP confirmations to printed status');
     const { error: updateError } = await supabase
       .from('rsvp_confirmations')
-      // @ts-ignore - TypeScript has issues with Supabase update typing
+      // @ts-expect-error - Supabase typing issues with update
       .update({
         rsvp_status: 'printed',
         printed_by: operatorId,
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     const { error: incrementError } = await supabase
       .from('operator_data')
-      // @ts-ignore - TypeScript has issues with Supabase update typing
+      // @ts-expect-error - Supabase typing issues with update
       .update({
         printed_tickets: newCount
       })
@@ -93,3 +93,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

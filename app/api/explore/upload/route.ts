@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const filePath = `posts/${fileName}`;
 
     // Upload image to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('explore_posts')
       .upload(filePath, image, {
         contentType: image.type,
@@ -81,3 +81,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+

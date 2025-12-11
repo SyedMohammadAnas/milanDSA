@@ -83,10 +83,6 @@ export default function PrintTicketsPage() {
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    fetchRSVPs(searchQuery);
-  };
 
   const handleRefresh = () => {
     console.log('[PRINT TICKETS] Refreshing list');

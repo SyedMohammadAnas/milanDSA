@@ -5,24 +5,37 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import Script from "next/script"
+import type { RazorpayError, RazorpayPaymentResponse } from "@/lib/razorpay"
 
-// Razorpay types
-interface RazorpayResponse {
-  razorpay_payment_id: string
-  razorpay_order_id: string
-  razorpay_signature: string
-}
-
-interface RazorpayError {
-  code: string
-  description: string
-  source: string
-  step: string
-  reason: string
-  metadata: {
-    order_id: string
-    payment_id?: string
-  }
+const eventData = {
+  name: "Thaman S",
+  title: "Thaman S Live in Concert",
+  images: [
+    "/ProShowTickets/Thaman/ThamanMain.jpg",
+    "/ProShowTickets/Thaman/Thaman1.jpg",
+    "/ProShowTickets/Thaman/Thaman2.jpg",
+  ],
+  categories: ["Music", "Concert", "Pro Show"],
+  description: "Experience the musical genius of Thaman S live on stage at MILAN 26. Known for his chart-topping compositions and electrifying performances, Thaman brings his signature sound to the festival.",
+  fullDescription: "Experience the musical genius of Thaman S live on stage at MILAN 26. Known for his chart-topping compositions and electrifying performances, Thaman brings his signature sound to the festival. With over 2000+ songs in Telugu, Tamil, Hindi, and other languages, Thaman has redefined music composition in Indian cinema. His unique blend of classical music influences with modern beats creates an unforgettable concert experience that will leave you wanting more. Don't miss this once-in-a-lifetime opportunity to witness the maestro himself perform his greatest hits and new compositions live.",
+  tips: [
+    "Arrive early to get the best viewing positions",
+    "Bring comfortable shoes as you'll be dancing all night",
+    "Stay hydrated throughout the performance",
+    "Keep your phone charged for capturing memories",
+    "Follow venue rules and respect fellow attendees"
+  ],
+  date: "March 15, 2025",
+  time: "8:00 PM",
+  duration: "3 hours",
+  ageGroup: "All Ages",
+  languages: "Multiple (Hindi, Telugu, Tamil)",
+  genres: "Film Music, Electronic, Fusion",
+  location: "Main Stage, Milan Campus",
+  price: 1499,
+  bookingStatus: "Tickets selling fast! Limited seats available.",
+  priceRange: "₹1,499",
+  availability: "Filling Fast"
 }
 
 export default function ThamanPlaceOrder() {
@@ -35,45 +48,15 @@ export default function ThamanPlaceOrder() {
   const [razorpayLoaded, setRazorpayLoaded] = useState(false)
   const router = useRouter()
 
-  // Event data extracted from database
-  const eventData = {
-    name: "Thaman Live in Concert",
-    title: "Thaman Live in Concert - MILAN 26'",
-    description: "Experience the musical maestro Thaman S in an electrifying live performance at MILAN 26! Get ready to be mesmerized by his iconic compositions and powerful vocals as he takes the stage for an unforgettable night of music and celebration.",
-    fullDescription: "Experience the musical maestro Thaman S in an electrifying live performance at MILAN 26! Get ready to be mesmerized by his iconic compositions and powerful vocals as he takes the stage for an unforgettable night of music and celebration. Thaman S, the renowned music director and composer, will showcase his greatest hits spanning multiple languages and genres. This is your chance to witness one of India's most celebrated music talents live in action. Don't miss out on this spectacular event that promises to be the highlight of MILAN 26!",
-    date: "Sat 15 Feb 2026",
-    time: "7:00 PM",
-    duration: "3 Hours",
-    ageGroup: "All age groups",
-    languages: "Telugu, Tamil, Hindi, English",
-    genres: "Film Music, Pop, Classical Fusion",
-    location: "Main Stage: MILAN 26",
-    venue: "Main Stage",
-    price: 1500, // Price in rupees (number for calculations)
-    priceDisplay: "₹1500",
-    priceRange: "₹1500 onwards",
-    availability: "Filling Fast",
-    bookingStatus: "Bookings are filling fast for this event",
-    images: [
-      "/ProShowTickets/Thaman/FinalShowcase/image1.png",
-      "/ProShowTickets/Thaman/FinalShowcase/image2.png",
-      "/ProShowTickets/Thaman/FinalShowcase/image3.png"
-    ],
-    categories: ["Concerts", "Music Festivals", "Pro Shows"],
-    tips: [
-      "VIP, Gold, and Silver sections available - choose your preferred seating!",
-      "Doors open 30 minutes before the show. Arrive early to avoid queues.",
-      "Photography and videography allowed, but please be respectful of other attendees.",
-      "Food and beverages will be available at the venue.",
-      "Parking facilities are available near the venue."
-    ]
-  }
-
-  // Check login status on mount
   useEffect(() => {
-    const studentEmail = localStorage.getItem('studentEmail')
-    setIsLoggedIn(!!studentEmail)
-    console.log('📝 [AUTH] Login status checked:', !!studentEmail)
+    // Check login status on client side
+    if (typeof window !== 'undefined') {
+      const studentEmail = localStorage.getItem('studentEmail')
+      const loggedIn = !!studentEmail
+      console.log('📝 [AUTH] Login status checked:', loggedIn)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsLoggedIn(loggedIn)
+    }
   }, [])
 
   const nextImage = () => {
@@ -98,7 +81,7 @@ export default function ThamanPlaceOrder() {
     }
 
     // Check if Razorpay is loaded
-    if (!razorpayLoaded || typeof window === 'undefined' || !(window as any).Razorpay) {
+    if (!razorpayLoaded || typeof window === 'undefined' || !window.Razorpay) {
       console.log('⏳ [PAYMENT] Razorpay not loaded yet, waiting...')
       setPaymentError('Payment gateway is loading. Please wait and try again.')
       return
@@ -162,7 +145,7 @@ export default function ThamanPlaceOrder() {
         theme: {
           color: '#EAB308',
         },
-        handler: async function (response: RazorpayResponse) {
+        handler: async function (response: RazorpayPaymentResponse) {
           console.log('✅ [PAYMENT] Payment successful, verifying...')
           console.log('📝 [PAYMENT] Payment ID:', response.razorpay_payment_id)
           console.log('📝 [PAYMENT] Order ID:', response.razorpay_order_id)
@@ -214,11 +197,11 @@ export default function ThamanPlaceOrder() {
 
       // Step 5: Open Razorpay checkout
       console.log('🔓 [PAYMENT] Opening Razorpay checkout...')
-      const razorpay = new (window as any).Razorpay(options)
+      const razorpay = new window.Razorpay(options)
 
-      razorpay.on('payment.failed', function (response: { error: RazorpayError }) {
-        console.error('❌ [PAYMENT] Payment failed:', response.error)
-        setPaymentError(`Payment failed: ${response.error.description}`)
+      razorpay.on('payment.failed', function (response: RazorpayError) {
+        console.error('❌ [PAYMENT] Payment failed:', response)
+        setPaymentError(`Payment failed: ${response.description}`)
         setIsLoading(false)
       })
 

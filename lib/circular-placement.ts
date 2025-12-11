@@ -34,7 +34,7 @@ export function pickRandomCenter(posts: Post[]): Post | null {
  * Load image and get its natural dimensions
  */
 export async function loadImageDimensions(url: string): Promise<ImageDimensions> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const img = new window.Image();
     img.onload = () => {
       resolve({ width: img.naturalWidth, height: img.naturalHeight });

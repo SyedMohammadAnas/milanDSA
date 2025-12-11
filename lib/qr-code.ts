@@ -101,14 +101,15 @@ export function generateQRCodeId(ticketId: string): string {
 /**
  * Validate QR code data structure
  */
-export function validateQRCodeData(data: any): data is QRCodeData {
+export function validateQRCodeData(data: unknown): data is QRCodeData {
   return (
-    data &&
+    data !== null &&
     typeof data === 'object' &&
-    data.student &&
-    data.ticket &&
-    data.transaction &&
-    data.metadata &&
-    data.metadata.event === 'MILAN 26\''
+    'student' in data &&
+    'ticket' in data &&
+    'transaction' in data &&
+    'metadata' in data &&
+    typeof (data as QRCodeData).metadata === 'object' &&
+    (data as QRCodeData).metadata.event === 'MILAN 26\''
   )
 }

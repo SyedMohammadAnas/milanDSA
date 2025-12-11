@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { BrowserMultiFormatReader, NotFoundException } from '@zxing/library';
 
 interface QRScannerModalProps {
@@ -23,19 +23,16 @@ export default function QRScannerModal({
   const [scanning, setScanning] = useState(false);
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      startScanning();
-    } else {
-      stopScanning();
+  const stopScanning = useCallback(() => {
+    if (codeReaderRef.current) {
+      console.log('[QR SCANNER] Stopping scanner');
+      codeReaderRef.current.reset();
+      codeReaderRef.current = null;
     }
+    setScanning(false);
+  }, []);
 
-    return () => {
-      stopScanning();
-    };
-  }, [isOpen]);
-
-  const startScanning = async () => {
+  const startScanning = useCallback(async () => {
     try {
       setError('');
       setScanning(true);
@@ -74,16 +71,19 @@ export default function QRScannerModal({
       setError(err instanceof Error ? err.message : 'Failed to start camera');
       setScanning(false);
     }
-  };
+  }, [onScan, stopScanning]);
 
-  const stopScanning = () => {
-    if (codeReaderRef.current) {
-      console.log('[QR SCANNER] Stopping scanner');
-      codeReaderRef.current.reset();
-      codeReaderRef.current = null;
+  useEffect(() => {
+    if (isOpen) {
+      startScanning();
+    } else {
+      stopScanning();
     }
-    setScanning(false);
-  };
+
+    return () => {
+      stopScanning();
+    };
+  }, [isOpen, startScanning, stopScanning]);
 
   const handleClose = () => {
     stopScanning();

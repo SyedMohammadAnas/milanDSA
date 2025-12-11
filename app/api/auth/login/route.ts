@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/lib/database.types'
+import type { PostgrestError } from '@supabase/supabase-js'
 import puppeteer from 'puppeteer'
 
 type StudentDatabaseRow = Database['public']['Tables']['student_database']['Row']
-type StudentDatabaseInsert = Database['public']['Tables']['student_database']['Insert']
 
 export async function POST(request: NextRequest) {
   const timestamp = new Date().toISOString()
@@ -22,6 +22,16 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    const supabase = createClient<Database>(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
 
     console.log(`[${timestamp}] 🗄️ CHECKING DATABASE FOR EXISTING STUDENT`)
 
@@ -104,7 +114,7 @@ export async function POST(request: NextRequest) {
       console.log(`[${timestamp}] 💾 SAVING STUDENT DATA TO DATABASE`)
 
       // Insert new student data into our database
-      const insertData: StudentDatabaseInsert = {
+      const insertData = {
         email,
         password,
         full_name: studentData.fullName,
@@ -116,13 +126,16 @@ export async function POST(request: NextRequest) {
         batch: studentData.batch
       }
 
-      const { data: newStudent, error: insertError } = await supabase
+      const query = supabase
         .from('student_database')
-        .insert(insertData as any)
+        // @ts-expect-error - TypeScript type inference issue with insert
+        .insert(insertData)
         .select()
-        .single() as { data: StudentDatabaseRow, error: any }
+        .single()
 
-      if (insertError) {
+      const { data: newStudent, error: insertError } = await query as { data: StudentDatabaseRow | null, error: PostgrestError | null }
+
+      if (insertError || !newStudent) {
         console.error(`[${timestamp}] ❌ DATABASE INSERT ERROR:`, insertError)
         return NextResponse.json(
           { message: 'Failed to save student data' },
@@ -234,7 +247,7 @@ async function scrapeAcademiaData(email: string, password: string) {
       }
 
       console.log(`[${new Date().toISOString()}] 🔄 SWITCHING TO IFRAME CONTEXT`)
-    } catch (iframeError) {
+    } catch {
       console.log(`[${new Date().toISOString()}] ❌ NO IFRAME FOUND, LOOKING FOR DIRECT INPUTS`)
 
       // Fallback: look for inputs on the main page
@@ -264,7 +277,7 @@ async function scrapeAcademiaData(email: string, password: string) {
             foundInput = true
             break
           }
-        } catch (e) {
+        } catch {
           continue
         }
       }
@@ -337,7 +350,8 @@ async function scrapeAcademiaData(email: string, password: string) {
           // Check if element is visible and enabled
           const isVisible = await contextPage.evaluate(el => {
             const htmlEl = el as HTMLElement
-            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !(htmlEl as any).disabled
+            const disabled = 'disabled' in htmlEl ? (htmlEl as HTMLInputElement).disabled : false
+            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !disabled
           }, element)
 
           if (!isVisible) {
@@ -382,7 +396,8 @@ async function scrapeAcademiaData(email: string, password: string) {
         if (element) {
           const isVisible = await contextPage.evaluate(el => {
             const htmlEl = el as HTMLElement
-            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !(htmlEl as any).disabled
+            const disabled = 'disabled' in htmlEl ? (htmlEl as HTMLInputElement).disabled : false
+            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !disabled
           }, element)
 
           if (!isVisible) {
@@ -435,7 +450,8 @@ async function scrapeAcademiaData(email: string, password: string) {
           // Check if element is visible and enabled
           const isVisible = await contextPage.evaluate(el => {
             const htmlEl = el as HTMLElement
-            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !(htmlEl as any).disabled
+            const disabled = 'disabled' in htmlEl ? (htmlEl as HTMLInputElement).disabled : false
+            return htmlEl.offsetWidth > 0 && htmlEl.offsetHeight > 0 && !disabled
           }, element)
 
           if (!isVisible) {
@@ -477,12 +493,12 @@ async function scrapeAcademiaData(email: string, password: string) {
       const signInButton = await contextPage.evaluate(() => {
         const buttons = Array.from(document.querySelectorAll('button, input[type="submit"]'))
         return buttons.find(btn => {
-          const htmlBtn = btn as HTMLElement
+          const htmlBtn = btn as HTMLButtonElement
           const text = btn.textContent?.trim()
           const style = window.getComputedStyle(btn)
           const isVisible = htmlBtn.offsetWidth > 0 && htmlBtn.offsetHeight > 0 &&
                            style.display !== 'none' && style.visibility !== 'hidden' &&
-                           !(htmlBtn as any).disabled
+                           !htmlBtn.disabled
           return isVisible && (text === 'Sign In' || text?.includes('Sign In'))
         })
       })
@@ -538,11 +554,11 @@ async function scrapeAcademiaData(email: string, password: string) {
             tagName: btn.tagName,
             type: btn.getAttribute('type'),
             visible: (() => {
-              const htmlBtn = btn as HTMLElement
+              const htmlBtn = btn as HTMLButtonElement
               const style = window.getComputedStyle(btn)
               return htmlBtn.offsetWidth > 0 && htmlBtn.offsetHeight > 0 &&
                      style.display !== 'none' && style.visibility !== 'hidden' &&
-                     !(htmlBtn as any).disabled
+                     !htmlBtn.disabled
             })()
           })).filter(btn => btn.visible)
         )
@@ -606,7 +622,7 @@ async function scrapeAcademiaData(email: string, password: string) {
             return null // Invalid credentials
           }
         }
-      } catch (e) {
+      } catch {
         continue
       }
     }

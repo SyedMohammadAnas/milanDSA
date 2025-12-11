@@ -15,17 +15,19 @@ export default function OperatorProfilePage() {
   const [operator, setOperator] = useState<Operator | null>(null);
 
   useEffect(() => {
-    // Check if operator is logged in
-    const operatorData = localStorage.getItem('operator');
-    if (!operatorData) {
-      console.log('[OPERATOR PROFILE] No operator session, redirecting to login');
-      router.push('/operator/login');
-      return;
+    // Initialize operator from localStorage on client side
+    if (typeof window !== 'undefined') {
+      const operatorData = localStorage.getItem('operator');
+      if (operatorData) {
+        const parsedOperator = JSON.parse(operatorData);
+        console.log('[OPERATOR PROFILE] Loaded operator:', parsedOperator.username);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setOperator(parsedOperator);
+      } else {
+        console.log('[OPERATOR PROFILE] No operator session, redirecting to login');
+        router.push('/operator/login');
+      }
     }
-
-    const parsedOperator = JSON.parse(operatorData);
-    console.log('[OPERATOR PROFILE] Loaded operator:', parsedOperator.username);
-    setOperator(parsedOperator);
   }, [router]);
 
   const handleLogout = () => {

@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase'
-import { Database } from '@/lib/database.types'
-
-type StudentDatabaseRow = Database['public']['Tables']['student_database']['Row']
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,14 +29,17 @@ export async function POST(request: NextRequest) {
     console.log('📝 [API] Updating student field:', field, 'for ID:', studentId)
 
     // Update the field using admin client
-    const { data, error } = await getSupabaseAdmin()
+    const updateStudentQuery = getSupabaseAdmin()
       .from('student_database')
+      // @ts-expect-error - TypeScript type inference issue with update
       .update({
         [field]: value.trim() === '' ? null : value.trim(),
         updated_at: new Date().toISOString()
       })
       .eq('id', studentId)
       .select()
+
+    const { data, error } = await updateStudentQuery
 
     if (error) {
       console.error('❌ [API] Database error:', error)

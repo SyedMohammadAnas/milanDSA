@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import type { PostgrestError } from '@supabase/supabase-js'
 import {
   createOrder,
   generateReceiptId,
@@ -8,6 +9,8 @@ import {
 } from '@/lib/razorpay'
 import { Database } from '@/lib/database.types'
 
+type StudentDatabaseRow = Database['public']['Tables']['student_database']['Row']
+type TicketConfirmationRow = Database['public']['Tables']['ticket_confirmations']['Row']
 
 // Create Supabase admin client for server-side operations
 const getSupabaseAdmin = () => {
@@ -72,7 +75,7 @@ export async function POST(request: NextRequest) {
       .from('student_database')
       .select('*')
       .eq('email', studentEmail)
-      .single()
+      .single() as { data: StudentDatabaseRow | null, error: PostgrestError | null }
 
     if (studentError || !student) {
       paymentLogger.error('Student not found in database', {
@@ -91,7 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     // TypeScript guard: student is guaranteed to exist here
-    const validStudent = student as any
+    const validStudent = student
     paymentLogger.success(`Student found: ${validStudent.full_name || 'Unknown'}`)
 
     // 4. Check if student already has a completed ticket (ONE TICKET PER STUDENT)
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest) {
       .select('id, booking_reference, event_name, created_at')
       .eq('email', studentEmail)
       .eq('payment_status', 'completed')
-      .single()
+      .single() as { data: TicketConfirmationRow | null, error: PostgrestError | null }
 
     if (ticketCheckError && ticketCheckError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
       paymentLogger.error('Error checking existing tickets', {
@@ -121,7 +124,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingCompletedTicket) {
-      const validTicket = existingCompletedTicket as any
+      const validTicket = existingCompletedTicket
       paymentLogger.warning('Student already has a completed ticket - blocking new purchase', {
         email: studentEmail,
         existingBookingRef: validTicket.booking_reference,
@@ -147,7 +150,7 @@ export async function POST(request: NextRequest) {
     paymentLogger.success('✓ Student eligible for ticket purchase')
 
     // 6. Generate unique identifiers
-    const receiptId = generateReceiptId(eventName, studentEmail)
+    const receiptId = generateReceiptId(eventName)
     const bookingReference = generateBookingReference(eventName)
 
     paymentLogger.info(`Receipt ID: ${receiptId}`)
@@ -172,8 +175,9 @@ export async function POST(request: NextRequest) {
     // 8. Create initial booking record in database (status: pending)
     paymentLogger.info('Creating initial booking record...')
 
-    const { data: booking, error: bookingError } = await (supabase as any)
+    const bookingQuery = supabase
       .from('ticket_confirmations')
+      // @ts-expect-error - TypeScript type inference issue with insert
       .insert({
         name: validStudent.full_name || 'Unknown',
         registration_number: validStudent.registration_number || 'Unknown',
@@ -188,6 +192,8 @@ export async function POST(request: NextRequest) {
       })
       .select()
       .single()
+
+    const { data: booking, error: bookingError } = await bookingQuery as { data: TicketConfirmationRow | null, error: PostgrestError | null }
 
     if (bookingError) {
       paymentLogger.error('Failed to create initial booking record', {
