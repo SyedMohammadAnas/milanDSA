@@ -353,12 +353,43 @@ export interface Database {
           updated_at?: string
         }
       }
+      explore_posts_manager: {
+        Row: {
+          id: string
+          image_url: string
+          posted_by: string
+          hashtags: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          image_url: string
+          posted_by: string
+          hashtags?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          image_url?: string
+          posted_by?: string
+          hashtags?: Json
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_trending_hashtags: {
+        Args: {
+          limit_count?: number
+        }
+        Returns: {
+          hashtag: string
+          count: number
+        }[]
+      }
     }
     Enums: {
       ticket_status: ticket_status
